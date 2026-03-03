@@ -10,6 +10,7 @@ const EventForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -19,6 +20,9 @@ const EventForm = () => {
     });
 
     useEffect(() => {
+        if (!import.meta.env.VITE_API_URL && window.location.hostname !== 'localhost') {
+            console.warn('VITE_API_URL is missing. API calls will likely fail. Please set it in Vercel settings.');
+        }
         if (id) {
             fetchEvent();
         }
@@ -28,14 +32,16 @@ const EventForm = () => {
         try {
             const res = await axios.get(`${API_BASE}/events/${id}`);
             setFormData(res.data);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            setError('Failed to load event data. Please check your connection.');
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError(null);
         try {
             if (id) {
                 await axios.put(`${API_BASE}/events/${id}`, formData);
@@ -43,8 +49,10 @@ const EventForm = () => {
                 await axios.post(`${API_BASE}/events`, formData);
             }
             navigate('/');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            const msg = err.response?.data?.error || err.message || 'Something went wrong. Please try again.';
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -67,6 +75,13 @@ const EventForm = () => {
                 <h2 style={{ fontSize: '2rem', marginBottom: '2rem' }}>
                     {id ? 'Edit' : 'Create'} <span className="gradient-text">Event</span>
                 </h2>
+
+                {error && (
+                    <div className="glass-panel" style={{ padding: '1rem', marginBottom: '2rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                        <Save size={18} />
+                        <span>{error}</span>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     <div className="input-group">
