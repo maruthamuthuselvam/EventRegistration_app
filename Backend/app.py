@@ -73,6 +73,10 @@ class Attendee(db.Model):
             'registered_at': self.registered_at.isoformat()
         }
 
+# Initialize Database on Startup
+with app.app_context():
+    db.create_all()
+
 # Serve React Frontend (Single Page Application)
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -247,11 +251,5 @@ def initdb_command():
     print("Initialized the database.")
 
 if __name__ == '__main__':
-    # Auto-create DB if missing
-    if not os.path.exists(os.path.join(BASE_DIR, 'database.db')):
-        with app.app_context():
-            db.create_all()
-            print("Created database.db")
-    
     port = int(os.environ.get('PORT', 5001))
     app.run(debug=False, host='0.0.0.0', port=port)
