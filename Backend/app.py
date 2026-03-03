@@ -17,7 +17,7 @@ app = Flask(__name__,
             template_folder=FRONTEND_DIR,
             static_url_path='/')
 
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(BASE_DIR, 'database.db'))
 # Handle Postgres prefix if using Render/Heroku (postgres:// -> postgresql://)
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith("postgres://"):
@@ -90,7 +90,7 @@ def serve(path):
         return render_template("index.html")
 
 # Routes (deprecated in favor of React API)
-@app.route('/legacy-home')
+@app.route('/api/legacy-home')
 def home():
     return redirect(url_for('list_events'))
 def list_events():
@@ -108,7 +108,7 @@ def list_events():
     events = query.order_by(Event.date.asc()).all()
     return render_template('events.html', events=events, q=q, date_filter=date_filter)
 
-@app.route('/events/new', methods=['GET', 'POST'])
+@app.route('/api/events/new', methods=['GET', 'POST'])
 def create_event():
     if request.method == 'POST':
         title = request.form['title'].strip()
@@ -128,7 +128,7 @@ def create_event():
         return redirect(url_for('list_events'))
     return render_template('event_form.html', action="Create", event=None)
 
-@app.route('/events/<int:event_id>/edit', methods=['GET', 'POST'])
+@app.route('/api/events/<int:event_id>/edit', methods=['GET', 'POST'])
 def edit_event(event_id):
     event = Event.query.get_or_404(event_id)
     if request.method == 'POST':
@@ -147,7 +147,7 @@ def edit_event(event_id):
         return redirect(url_for('list_events'))
     return render_template('event_form.html', action="Edit", event=event)
 
-@app.route('/events/<int:event_id>/delete', methods=['POST'])
+@app.route('/api/events/<int:event_id>/delete', methods=['POST'])
 def delete_event(event_id):
     event = Event.query.get_or_404(event_id)
     db.session.delete(event)
@@ -155,13 +155,13 @@ def delete_event(event_id):
     flash('Event deleted.', 'success')
     return redirect(url_for('list_events'))
 
-@app.route('/events/<int:event_id>')
+@app.route('/api/events/<int:event_id>')
 def view_event(event_id):
     event = Event.query.get_or_404(event_id)
     return render_template('event_view.html', event=event)
 
 # Attendees
-@app.route('/events/<int:event_id>/attendees', methods=['GET', 'POST'])
+@app.route('/api/events/<int:event_id>/attendees', methods=['GET', 'POST'])
 def manage_attendees(event_id):
     event = Event.query.get_or_404(event_id)
     if request.method == 'POST':
@@ -179,7 +179,7 @@ def manage_attendees(event_id):
     attendees = Attendee.query.filter_by(event_id=event_id).order_by(Attendee.registered_at.desc()).all()
     return render_template('attendees.html', event=event, attendees=attendees)
 
-@app.route('/attendees/<int:att_id>/delete', methods=['POST'])
+@app.route('/api/attendees/<int:att_id>/delete', methods=['POST'])
 def delete_attendee(att_id):
     att = Attendee.query.get_or_404(att_id)
     event = att.event
@@ -190,8 +190,8 @@ def delete_attendee(att_id):
     flash('Attendee removed and ticket freed.', 'success')
     return redirect(url_for('manage_attendees', event_id=event.id))
 
-# CSV Upload
-@app.route('/upload', methods=['GET', 'POST'])
+# API CSV Upload
+@app.route('/api/upload', methods=['GET', 'POST'])
 def upload_csv():
     if request.method == 'POST':
         uploaded = request.files.get('file')
@@ -234,8 +234,8 @@ def upload_csv():
             return redirect(url_for('upload_csv'))
     return render_template('upload.html')
 
-# Simple report
-@app.route('/report')
+# Simple report (for potential legacy or direct access)
+@app.route('/api/legacy-report')
 def report():
     total_events = Event.query.count()
     total_attendees = Attendee.query.count()
